@@ -3,13 +3,13 @@ from PIL import Image
 import cv2
 
 def getGraph(filename):
-	vc= cv2.VideoCapture(filename+".mp4")
+	vc= cv2.VideoCapture(filename)
 	if vc.isOpened():
 		rval,frame=vc.read()
 		cv2.imwrite(str(0)+".jpg",frame)#第一帧
 	else:
 		rval=False
-	fps = 10
+	fps = 1
 	k = 1
 	count = 1
 	while rval:
@@ -33,4 +33,4 @@ def decode(filename):
 			print(data)
 	return
 if __name__=="__main__":
-	decode("c")
+	decode("test.mp4")
