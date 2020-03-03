@@ -6,6 +6,9 @@ width = 72
 inWidth = 40
 locWidth = 16
 
+sLocWidth = 8
+sblackWhite = 7
+
 def getContours(image):
 	gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
 	#gray = cv2.blur(gray, (5, 5), 0)
@@ -37,10 +40,10 @@ def computeRate2(contours,i,j):
 		return True
 	return False
 
-def computeCenter(contours,i):
-	M=cv2.moments(contours[i])#计算中心距
-	x = int(M['m10']/M['m00'])
-	y = int(M['m01']/M['m00'])
+def getCenter(contours,i):
+	M=cv2.moments(contours[i])
+	x = (M['m10']/M['m00'])
+	y = (M['m01']/M['m00'])
 	return x,y
 
 def detectContours(vec):
@@ -79,15 +82,16 @@ def find(image,contours,hierachy,root=0):
 		grandchild = hierachy[child][2]
 		if child!=-1 and grandchild !=-1:
 			if computeRate1(contours,i,child) and computeRate2(contours,child,grandchild):
-				x1,y1 = computeCenter(contours,i)
-				x2,y2 = computeCenter(contours,child)
-				x3,y3 = computeCenter(contours,grandchild)
+				x1,y1 = getCenter(contours,i)
+				x2,y2 = getCenter(contours,child)
+				x3,y3 = getCenter(contours,grandchild)
 				if detectContours([x1,y1,x2,y2,x3,y3,i,child,grandchild]):
 					rec.append([x1,y1,x2,y2,x3,y3,i,child,grandchild])
 	i,j,k = judgeAngle(rec)
 	if i==-1 or j==-1 or k ==-1:
 		return
 	ts = np.concatenate((contours[rec[i][6]],contours[rec[j][6]],contours[rec[k][6]]))
+	
 	rect = cv2.minAreaRect(ts)
 	box = cv2.boxPoints(rect)
 	box = np.int32(box)
@@ -129,6 +133,11 @@ def decode(image):
 	col=locWidth #
 	while row<width:
 		if row<locWidth:
+			if (row+col)% 2==0:
+				if(mat[row][col] > thre):
+					mat[row][col] = 0
+				else:
+					mat[row][col] = 255
 			if mat[row][col] > thre:
 				binstring+="0"
 			else:
@@ -141,6 +150,11 @@ def decode(image):
 					col = 0
 				row += 1
 		elif row<width-locWidth:
+			if (row+col)% 2==0:
+				if(mat[row][col] > thre):
+					mat[row][col] = 0
+				else:
+					mat[row][col] = 255
 			if mat[row][col] > thre:
 				binstring+="0"
 			else:
@@ -152,13 +166,32 @@ def decode(image):
 				else:
 					col = locWidth
 				row += 1
-		else:
+		elif row < width-sLocWidth:
+			if (row+col)% 2==0:
+				if(mat[row][col] > thre):
+					mat[row][col] = 0
+				else:
+					mat[row][col] = 255
 			if mat[row][col] > thre:
 				binstring+="0"
 			else:
 				binstring+="1"
 			col += 1
 			if col>width-1:
+				col = locWidth
+				row += 1
+		else:
+			if (row+col)% 2==0:
+				if(mat[row][col] > thre):
+					mat[row][col] = 0
+				else:
+					mat[row][col] = 255
+			if mat[row][col] > thre:
+				binstring+="0"
+			else:
+				binstring+="1"
+			col += 1
+			if col>width-sLocWidth-1:
 				col = locWidth
 				row += 1
 	res=""
@@ -171,7 +204,7 @@ def decode(image):
 	return
 
 if __name__ == "__main__":
-	img=cv2.imread("test3.jpg")
+	img=cv2.imread("test.png")
 	img,contours,hierachy = getContours(img)
 	img=find(img,contours,np.squeeze(hierachy))
 	cv2.imwrite("output.png",img)
