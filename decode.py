@@ -1,10 +1,10 @@
 import numpy as np
-from imutils.perspective import four_point_transform
 import cv2
 
 width = 72
 inWidth = 40
 locWidth = 16
+border = 4
 
 sLocWidth = 8
 sblackWhite = 7
@@ -54,26 +54,48 @@ def detectContours(vec):
 		return True
 	return False
 
-def judgeAngle(rec):
-	if len(rec)<3:
+def judgeOrdeer(rec):
+	if len(rec)<4:
 		print("not find enough diction point!")
-		return -1,-1,-1
+		return -1,-1,-1,-1
+
+	max = 0
+	index = 0
 	for i in range(len(rec)):
+		if(rec[i][0]>max):
+			max = rec[i][0]
+			index = i
+	for i in range(len(rec)):
+		if i == index:
+			continue
 		for j in range(i+1,len(rec)):
+			if j == index:
+				continue
 			for k in range(j+1,len(rec)):
+				if k == index:
+					continue
 				distance1 = np.sqrt((rec[i][0] - rec[j][0]) ** 2 + (rec[i][1] - rec[j][1]) ** 2)
 				distance2 = np.sqrt((rec[i][0] - rec[k][0]) ** 2 + (rec[i][1] - rec[k][1]) ** 2)
 				distance3 = np.sqrt((rec[j][0] - rec[k][0]) ** 2 + (rec[j][1] - rec[k][1]) ** 2)
 				if abs(distance1-distance2)/10<5:
 					if abs(np.square(distance1)+np.square(distance2)- np.square(distance3))/(2*distance1*distance2) < 0.03:
-						return i,j,k
+						if rec[j][0]<rec[k][0]:
+							return i,j,index,k
+						else:
+							return i,k,index,j
 				elif abs(distance1-distance3)/10<5:
 					if abs(np.square(distance1)+np.square(distance3)- np.square(distance2))/(2*distance1*distance3) < 0.03:
-						return i,j,k
+						if rec[i][0]<rec[k][0]:
+							return j,i,index,k
+						else:
+							return j,k,index,i
 				elif abs(distance2-distance3)/10<5:
 					if abs(np.square(distance2)+np.square(distance3)- np.square(distance1))/(2*distance2*distance3) < 0.03:
-						return i,j,k
-	return -1,-1,-1
+						if rec[i][0]<rec[j][0]:
+							return k,i,index,j
+						else:
+							return k,j,index,i
+	return -1,-1,-1,-1
 
 def find(image,contours,hierachy,root=0):
 	rec=[]
@@ -87,24 +109,26 @@ def find(image,contours,hierachy,root=0):
 				x3,y3 = getCenter(contours,grandchild)
 				if detectContours([x1,y1,x2,y2,x3,y3,i,child,grandchild]):
 					rec.append([x1,y1,x2,y2,x3,y3,i,child,grandchild])
-	i,j,k = judgeAngle(rec)
-	if i==-1 or j==-1 or k ==-1:
-		return
-	ts = np.concatenate((contours[rec[i][6]],contours[rec[j][6]],contours[rec[k][6]]))
-	
-	rect = cv2.minAreaRect(ts)
-	box = cv2.boxPoints(rect)
-	box = np.int32(box)
+	i,j,k,t = judgeOrdeer(rec)
+	if i==-1 or j==-1 or k ==-1 or t==-1:
+		print("not find enough anchor point")
+		return 
 
-	#vertexWarp=np.array([[0,width*10],[0,0],[width*10,0],[width*10,width*10]],dtype="float32")
-	#M = cv2.getPerspectiveTransform(box,vertexWarp)
-	#out = cv2.warpPerspective(image,M,(width*10,width*10))
-
-	rect = four_point_transform(image, box)
-	out = cv2.resize(rect,(width*10,width*10))
+	#ts = np.concatenate((contours[rec[i][6]],contours[rec[j][6]],contours[rec[k][6]]))
+	#rect = cv2.minAreaRect(ts)
 	#box = cv2.boxPoints(rect)
-	cv2.drawContours(image,[box],0,(0,0,255),2)
-	cv2.imwrite("output.jpg",image)
+	#box = np.int32(box)
+	vertexSrc = np.array([[rec[i][0],rec[i][1]],[rec[j][0],rec[j][1]],[rec[k][0],rec[k][1]],[rec[t][0],rec[t][1]]],dtype="float32")
+	#print(vertexSrc)
+	vertexWarp=np.array([[69.5,69.5],[69.5,649.5],[684.5,684.5],[649.5,69.5]],dtype="float32")
+	M = cv2.getPerspectiveTransform(vertexSrc,vertexWarp)
+	out = cv2.warpPerspective(image,M,(width*10,width*10))
+
+	#rect = four_point_transform(image, box)
+	#out = cv2.resize(rect,(width*10,width*10))
+	#box = cv2.boxPoints(rect)
+	#cv2.drawContours(image,[box],0,(0,0,255),2)
+	#cv2.imwrite("output.jpg",image)
 	#out = image[box[1][0]:box[3][0],box[1][1]:box[3][1]]
 	return out
 

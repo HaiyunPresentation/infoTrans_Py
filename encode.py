@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-from PIL import Image,ImageDraw
 
 border = 4
 width = 80
@@ -141,7 +140,6 @@ def genImage(mat,width,filename):
 			if(normali<len(mat) and normalj<len(mat)):
 				img[i][j][0]=int(mat[int(normali)][int(normalj)])
 	cv2.imwrite("test.png",img)
-	cv2.waitKey()
 	return
 if __name__=="__main__":
 	#mat=np.zeros((120,120),dtype = np.uint8)
