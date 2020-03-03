@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
-
+import os
+import sys
 border = 4
 width = 80
 inWidth = 40
@@ -63,11 +64,7 @@ def mask(mat,row,col):
 		mat[row][col] = 0
 	else:
 		mat[row][col] = 255
-def encode(mat,data):
-	binstring=""
-	#转二进制
-	for ch in data:
-		binstring += '{:08b}'.format(ord(ch.encode('utf-8')))
+def encode(mat,binstring):
 	row=border #记录绘制到第几行
 	col=border + locWidth #
 	while binstring and row < width - border:
@@ -125,7 +122,7 @@ def encode(mat,data):
 	#	res += chr(t)
 	#	bitstring = bitstring[8:]
 	#print(res)
-	return
+	return binstring
 
 def drawPoint():
 	return
@@ -139,17 +136,50 @@ def genImage(mat,width,filename):
 			normalj = j/pwidth
 			if(normali<len(mat) and normalj<len(mat)):
 				img[i][j][0]=int(mat[int(normali)][int(normalj)])
-	cv2.imwrite("test.png",img)
+	cv2.imwrite(filename,img)
 	return
-if __name__=="__main__":
+
+def imgToVideo(outputFileName,num):
+	fps=20#视频帧数
+	size =(width*10,width*10)#需要转为视频的图片的尺寸
+	video = cv2.VideoWriter(outputFileName,cv2.VideoWriter_fourcc('M','J','P','G'),fps,size)
+
+	for i in range(num):
+		img=cv2.imread("./video/"+str(i)+".png")
+		video.write(img)
+
+def main(argv):
 	#mat=np.zeros((120,120),dtype = np.uint8)
-	mat = [[255 for i in range(width)]for j in range(width)]
-	drawLocPoint(mat)
 	#genImage(mat,width*10,1)
-	encode(mat,"Gettysburg Address"
-			"Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal. "
-			"Now we are engaged in a great civil war, testing whether that nation, or any nation so conceived and so dedicated, can long endure. We are met on a great battle-field of that war. We have come to dedicate a portion of that field, as a final resting place for those who here gave their lives that that nation might live. It is altogether fitting and proper that we should do this. "
-			"But, in a larger sense, we can not dedicate -- we can not consecrate -- we can not hallow -- this ground. The brave men, living and dead, who struggled here, have consecrated it, far above our poor power to add or detract. The world will little note, nor long remember what we say here, but it can never forget what they did here. It is for us the living, rather, to be dedicated here to the unfinished work which they who fought here have thus far so nobly advanced. It is rather for us to be here dedicated to the great task remaining before us -- that from these honored dead we take increased devotion to that cause for which they gave the last full measure of devotion -- that we here highly resolve that these dead shall not have died in vain -- that this nation, under God, shall have a new birth of freedom -- and that government of the people, by the people, for the people, shall not perish from the earth."
-			"Abraham Lincoln"
-			"November 19, 1863")
-	genImage(mat,width*10,1)
+	inputFileName = "./data/in.bin"
+	outputFileName = "./video/in.avi"
+	if len(argv)>1:
+		inputFileName = argv[1]
+		outputFileName = argv[2]
+	with open(inputFileName,'rb') as reader:
+		data=reader.read().decode('utf-8')
+	#data = ("Gettysburg Address"
+	#		"Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal. "
+	#		"Now we are engaged in a great civil war, testing whether that nation, or any nation so conceived and so dedicated, can long endure. We are met on a great battle-field of that war. We have come to dedicate a portion of that field, as a final resting place for those who here gave their lives that that nation might live. It is altogether fitting and proper that we should do this. "
+	#		"But, in a larger sense, we can not dedicate -- we can not consecrate -- we can not hallow -- this ground. The brave men, living and dead, who struggled here, have consecrated it, far above our poor power to add or detract. The world will little note, nor long remember what we say here, but it can never forget what they did here. It is for us the living, rather, to be dedicated here to the unfinished work which they who fought here have thus far so nobly advanced. It is rather for us to be here dedicated to the great task remaining before us -- that from these honored dead we take increased devotion to that cause for which they gave the last full measure of devotion -- that we here highly resolve that these dead shall not have died in vain -- that this nation, under God, shall have a new birth of freedom -- and that government of the people, by the people, for the people, shall not perish from the earth."
+	#		"Abraham Lincoln"
+	#		"November 19, 1863")
+	binstring=""
+	#转二进制
+	for ch in data:
+		binstring += '{:08b}'.format(ord(ch.encode('utf-8')))
+
+	num = 0
+	while(binstring):
+		mat = [[255 for i in range(width)]for j in range(width)]
+		drawLocPoint(mat)
+		binstring=encode(mat,binstring)
+		genImage(mat,width*10,"./video/"+str(num)+".png")
+		num+=1
+		print(len(binstring))
+	imgToVideo("./video/in.avi",num)
+
+if __name__=="__main__":
+	#main(sys.argv)
+	num = 165
+	imgToVideo("./video/in.avi",num)
