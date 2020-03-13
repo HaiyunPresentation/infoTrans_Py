@@ -17,7 +17,7 @@ def getContours(image):
 	contours,hierachy=cv2.findContours(gray,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
 	cv2.imwrite("out.png",gray)
 	cv2.waitKey()
-	return gray,contours,hierachy
+	return contours,hierachy
 	#cv2.drawContours(img,contours,-1,(0,0,255),3)
 	#cv2.imwrite("output.png",img)
 
@@ -132,8 +132,13 @@ def find(image,contours,hierachy,root=0):
 	#out = image[box[1][0]:box[3][0],box[1][1]:box[3][1]]
 	return out
 
+def demask(mat,row,col,count,thre):
+	if(mat[row][col][count] > thre):
+		mat[row][col][count] = 0
+	else:
+		mat[row][col][count] = 255
 def decode(image):
-	mat = [[0.0 for i in range(width)]for j in range(width)]
+	mat = np.full((width,width,3),0,dtype=np.float32)
 	pwidth = 10
 	i = 0
 	for i in range(width*10):
@@ -143,9 +148,13 @@ def decode(image):
 			if(normali<len(mat) and normalj<len(mat)):
 				#加权
 				if i%10<3 or i%10>6 or j%10<3 or j%10>6:
-					mat[int(normali)][int(normalj)]+=image[i][j]*0.2/84
+					mat[int(normali)][int(normalj)][0]+=image[i][j][0]*0.2/84
+					mat[int(normali)][int(normalj)][1]+=image[i][j][1]*0.2/84
+					mat[int(normali)][int(normalj)][2]+=image[i][j][2]*0.2/84
 				else:
-					mat[int(normali)][int(normalj)]+=image[i][j]*0.05
+					mat[int(normali)][int(normalj)][0]+=image[i][j][0]*0.05
+					mat[int(normali)][int(normalj)][1]+=image[i][j][1]*0.05
+					mat[int(normali)][int(normalj)][2]+=image[i][j][2]*0.05
 				#if i%10==4 and j%10==4:
 				#	mat[int(normali)][int(normalj)]=image[i][j]
 	#print(image[5][91])
@@ -153,71 +162,72 @@ def decode(image):
 	#转二进制
 	binstring=""
 	row=0
-	thre=127.5
+	thre = 120.0
 	col=locWidth #
+	count = 0;
 	while row<width:
 		if row<locWidth:
 			if (row+col)% 2==0:
-				if(mat[row][col] > thre):
-					mat[row][col] = 0
-				else:
-					mat[row][col] = 255
-			if mat[row][col] > thre:
+				demask(mat,row,col,count,thre)
+			if mat[row][col][count] > thre:
 				binstring+="0"
 			else:
 				binstring+="1"
-			col += 1
-			if col>width-locWidth-1:
-				if row!=locWidth-1:
-					col = locWidth
-				else:
-					col = 0
-				row += 1
+			count+=1;
+			if count>=3:
+				count-=3
+				col += 1
+				if col>width-locWidth-1:
+					if row!=locWidth-1:
+						col = locWidth
+					else:
+						col = 0
+					row += 1
 		elif row<width-locWidth:
 			if (row+col)% 2==0:
-				if(mat[row][col] > thre):
-					mat[row][col] = 0
-				else:
-					mat[row][col] = 255
-			if mat[row][col] > thre:
+				demask(mat,row,col,count,thre)
+			if mat[row][col][count] > thre:
 				binstring+="0"
 			else:
 				binstring+="1"
-			col += 1
-			if(col>width-1):
-				if row !=width-locWidth-1:
-					col = 0
-				else:
-					col = locWidth
-				row += 1
+			count+=1;
+			if count>=3:
+				count-=3
+				col += 1
+				if(col>width-1):
+					if row !=width-locWidth-1:
+						col = 0
+					else:
+						col = locWidth
+					row += 1
 		elif row < width-sLocWidth:
 			if (row+col)% 2==0:
-				if(mat[row][col] > thre):
-					mat[row][col] = 0
-				else:
-					mat[row][col] = 255
-			if mat[row][col] > thre:
+				demask(mat,row,col,count,thre)
+			if mat[row][col][count] > thre:
 				binstring+="0"
 			else:
 				binstring+="1"
-			col += 1
-			if col>width-1:
-				col = locWidth
-				row += 1
+			count+=1;
+			if count>=3:
+				count-=3
+				col += 1
+				if col>width-1:
+					col = locWidth
+					row += 1
 		else:
 			if (row+col)% 2==0:
-				if(mat[row][col] > thre):
-					mat[row][col] = 0
-				else:
-					mat[row][col] = 255
-			if mat[row][col] > thre:
+				demask(mat,row,col,count,thre)
+			if mat[row][col][count] > thre:
 				binstring+="0"
 			else:
 				binstring+="1"
-			col += 1
-			if col>width-sLocWidth-1:
-				col = locWidth
-				row += 1
+			count+=1;
+			if count>=3:
+				count-=3
+				col += 1
+				if col>width-sLocWidth-1:
+					col = locWidth
+					row += 1
 	#res=""
 	#print(binstring)
 	#while binstring:
@@ -271,8 +281,8 @@ if __name__ == "__main__":
 	#	print(count-i)
 	#	decode(img)
 	#	i+=1
-	img=cv2.imread("./video/0.png")
-	img,contours,hierachy = getContours(img)
+	img=cv2.imread("test.jpg")
+	contours,hierachy = getContours(img)
 	img=find(img,contours,np.squeeze(hierachy))
-	cv2.imwrite("output.png",img)
+	#cv2.imwrite("output.png",img)
 	decode(img)

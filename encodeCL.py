@@ -60,60 +60,82 @@ def drawLocPoint(mat):
 			mat[width-i-1][width-j-1] = 0
 	return
 
-def mask(mat,row,col):
-	if(mat[row][col]==255):
-		mat[row][col] = 0
+def mask(mat,row,col,count):
+	if(mat[row][col][count]==255):
+		mat[row][col][count] = 0
 	else:
-		mat[row][col] = 255
+		mat[row][col][count] = 255
+	return
 def encode(mat,binstring):
 	row=border #记录绘制到第几行
-	col=border + locWidth #
+	col=border + locWidth #记录绘制到第几列
+	count = 0#rgb通道变换
 	while binstring and row < width - border:
 		if row<border+locWidth:
 			if int(binstring[0]) == 1:
-				mat[row][col] = 0
+				mat[row][col][count] = 0
+			else:
+				mat[row][col][count] = 255
 			if (col+row)% 2==0:
-				mask(mat,row,col)
-			col += 1
-			if col>width-border-locWidth-1:
-				if row!=border+locWidth-1 :
-					col = border + locWidth
-				else:
-					col = border
-				row += 1
+				mask(mat,row,col,count)
+			count+=1
+			if count>=3:
+				count-=3
+				col += 1
+				if col>width-border-locWidth-1:
+					if row!=border+locWidth-1 :
+						col = border + locWidth
+					else:
+						col = border
+					row += 1
 			binstring=binstring[1:]
 		elif row<width-border-locWidth:
 			if int(binstring[0]) == 1:
-				mat[row][col] = 0
+				mat[row][col][count] = 0
+			else:
+				mat[row][col][count] = 255
 			if (col+row)% 2==0:
-				mask(mat,row,col)
-			col += 1
-			if col>width-border-1:
-				if row != width-border-locWidth-1:
-					col = border
-				else:
-					col = border + locWidth
-				row += 1
+				mask(mat,row,col,count)
+			count+=1
+			if count>=3:
+				count-=3
+				col += 1
+				if col>width-border-1:
+					if row != width-border-locWidth-1:
+						col = border
+					else:
+						col = border + locWidth
+					row += 1
 			binstring=binstring[1:]
 		elif row < width-border-sLocWidth:
 			if int(binstring[0]) == 1:
-				mat[row][col] = 0
+				mat[row][col][count] = 0
+			else:
+				mat[row][col][count] = 255
 			if (col+row)% 2==0:
-				mask(mat,row,col)
-			col += 1
-			if col>width-border-1:
-				col = border + locWidth
-				row += 1
+				mask(mat,row,col,count)
+			count+=1
+			if count>=3:
+				count-=3
+				col += 1
+				if col>width-border-1:
+					col = border + locWidth
+					row += 1
 			binstring=binstring[1:]
 		else:
 			if int(binstring[0]) == 1:
-				mat[row][col] = 0
+				mat[row][col][count] = 0
+			else:
+				mat[row][col][count] = 255
 			if (col+row)% 2==0:
-				mask(mat,row,col)
-			col += 1
-			if col>width-sLocWidth-border-1:
-				col = border + locWidth
-				row += 1
+				mask(mat,row,col,count)
+			count+=1
+			if count>=3:
+				count-=3
+				col += 1
+				if col>width-sLocWidth-border-1:
+					col = border + locWidth
+					row += 1
 			binstring=binstring[1:]
 	#print(row)
 	#print(bitstring)
@@ -129,14 +151,16 @@ def drawPoint():
 	return
 
 def genImage(mat,width,filename):
-	img = np.zeros((width,width,1),dtype=np.uint8)
+	img = np.zeros((width,width,3),dtype=np.uint8)
 	pwidth = width/len(mat)#pwidth一般取10
 	for i in range(width):
 		normali = i/pwidth
 		for j in range(width):
 			normalj = j/pwidth
 			if(normali<len(mat) and normalj<len(mat)):
-				img[i][j][0]=int(mat[int(normali)][int(normalj)])
+				img[i][j][0]=int(mat[int(normali)][int(normalj)][0])
+				img[i][j][1]=int(mat[int(normali)][int(normalj)][1])
+				img[i][j][2]=int(mat[int(normali)][int(normalj)][2])
 	cv2.imwrite(filename,img)
 	return
 
@@ -173,7 +197,9 @@ def main(argv):
 
 	num = 0
 	while(binstring):
-		mat = [[255 for i in range(width)]for j in range(width)]
+		#mat = np.zeros([width, width, 3], np.uint8)
+		mat = np.full((width,width,3),255,dtype=np.uint8)
+		#mat = [[255 for i in range(width)]for j in range(width)]
 		drawLocPoint(mat)
 		binstring=encode(mat,binstring)
 		genImage(mat,width*10,"./video/"+str(num)+".png")
