@@ -10,6 +10,10 @@ border = 4
 sLocWidth = 8
 sblackWhite = 7
 
+first = 0
+end = 0
+
+
 def getContours(image):
 	gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
 	#gray = cv2.blur(gray, (5, 5), 0)
@@ -27,7 +31,7 @@ def computeRate1(contours,i,j):
 	if area2 == 0:
 		return False
 	ratio = area1*1.0/area2
-	if abs(ratio-49.0/25) < 1:
+	if abs(ratio-49.0/25) < 2:
 		return True
 	return False
 
@@ -37,7 +41,7 @@ def computeRate2(contours,i,j):
 	if area2 == 0:
 		return False
 	ratio = area1*1.0/area2
-	if abs(ratio-25.0/9) < 1:
+	if abs(ratio-25.0/9) < 2:
 		return True
 	return False
 
@@ -98,6 +102,7 @@ def judgeOrder(rec):
 	return -1,-1,-1,-1
 
 def find(image,contours,hierachy,root=0):
+
 	rec=[]
 	for i in range(len(hierachy)):
 		child = hierachy[i][2]
@@ -138,6 +143,7 @@ def demask(mat,row,col,count,thre):
 	else:
 		mat[row][col][count] = 255
 def decode(image):
+
 	mat = np.full((width,width,3),0,dtype=np.float32)
 	pwidth = 10
 	i = 0
@@ -228,6 +234,7 @@ def decode(image):
 				if col>width-sLocWidth-1:
 					col = locWidth
 					row += 1
+	
 	#res=""
 	#print(binstring)
 	#while binstring:
@@ -236,32 +243,60 @@ def decode(image):
 	#	binstring = binstring[8:]
 	#res = ""
 	#print(binstring)
-	writer = open("./output/output.txt",'wb+')
+	startOrEnd = 170
+	startOrEndStr = ""
+	for i in range(8):
+		startOrEndStr += '{:08b}'.format(startOrEnd)
+	
+	global first
+	global end
+	temp = 0
+
+	if first==0 and binstring[:64]!=startOrEndStr:
+		return 
+	elif first ==0 and binstring[:64]==startOrEndStr:
+		binstring=binstring[64:]
+		first=1
+	elif first == 1 and binstring.find(startOrEndStr)!=-1:
+		temp = 1
+		binstring=binstring[:binstring.find(startOrEndStr)]
+
+	writer = open("./output/output.bin",'ab+')
 	while binstring:
 		t = (int(binstring[:8],2))
 		res = struct.pack('B', t)
 		writer.write(res)
 		binstring = binstring[8:]
 	writer.close()
-	#with open("./output/output.txt",'wb+') as writer:
-	#	writer.write(res)
+	if temp==1:
+		end=1
 	return
 
+def checkStart():
+	global first
+	temp = 1
+	while(first==0):
+		img=cv2.imread("./output/"+str(temp)+".png")
+		contours,hierachy = getContours(img)
+		img=find(img,contours,np.squeeze(hierachy))
+		decode(img)
+		print(temp)
+		temp+=1
+	return temp
 def getGraph(filename):
 	vc= cv2.VideoCapture(filename)
 	if vc.isOpened():
-		rval,frame=vc.read()
-		cv2.imwrite("./output/"+str(0)+".png",frame)#第一帧
+		rval = True
 	else:
-		rval=False
-	fps = 3
+		rval = False
+	fps = 1
 	k = 1
 	count = 1
 	while rval:
 		rval,frame=vc.read()
 		if frame is None:
 			break
-		if(k%fps==0):
+		if k%fps==0:
 			cv2.imwrite("./output/"+str(count)+".png",frame)
 			count += 1
 		k += 1
@@ -271,18 +306,21 @@ def getGraph(filename):
 
 if __name__ == "__main__":
 	#count = getGraph("./video/in.mp4")
-	#count=8
-	#i = 7
-	#while i<count:
-	#	img=cv2.imread("./output/"+str(i)+".png")
-	#	img,contours,hierachy = getContours(img)
-	#	img=find(img,contours,np.squeeze(hierachy))
-	#	cv2.imwrite("output.png",img)
-	#	print(count-i)
-	#	decode(img)
-	#	i+=1
-	img=cv2.imread("test.jpg")
-	contours,hierachy = getContours(img)
-	img=find(img,contours,np.squeeze(hierachy))
+	#i = checkStart()
+	i = 17
+	count = 78
+	while i<count:
+		img=cv2.imread("./output/"+str(i+1)+".png")
+		contours,hierachy = getContours(img)
+		img=find(img,contours,np.squeeze(hierachy))
+		#cv2.imwrite("output.png",img)
+		print(count-i)
+		decode(img)
+		if end == 1:
+			break
+		i+=3
+	#img=cv2.imread("test.jpg")
+	#contours,hierachy = getContours(img)
+	#img=find(img,contours,np.squeeze(hierachy))
 	#cv2.imwrite("output.png",img)
-	decode(img)
+	#decode(img)

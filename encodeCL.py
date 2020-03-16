@@ -165,13 +165,17 @@ def genImage(mat,width,filename):
 	return
 
 def imgToVideo(outputFileName,num):
-	fps=20#视频帧数
+	fps=10#视频帧数
 	size =(width*10,width*10)#需要转为视频的图片的尺寸
 	video = cv2.VideoWriter(outputFileName,cv2.VideoWriter_fourcc('M','J','P','G'),fps,size)
 
 	for i in range(num):
 		img=cv2.imread("./video/"+str(i)+".png")
 		video.write(img)
+def genBlankFrame():
+	mat = np.full((width,width,3),255,dtype=np.uint8)
+	drawLocPoint(mat)
+	genImage(mat,width*10,"./video/"+str(0)+".png")
 
 def main(argv):
 	#mat=np.zeros((120,120),dtype = np.uint8)
@@ -194,8 +198,16 @@ def main(argv):
 	for ch in data:
 		#print(struct.unpack('B',ch))
 		binstring += '{:08b}'.format(ch)
+	startOrEnd = 170
+	startOrEndStr = ""
+	for i in range(8):
+		startOrEndStr += '{:08b}'.format(startOrEnd)
+	binstring = startOrEndStr + binstring
+	binstring = binstring + startOrEndStr
 
-	num = 0
+	genBlankFrame()
+	num = 1
+
 	while(binstring):
 		#mat = np.zeros([width, width, 3], np.uint8)
 		mat = np.full((width,width,3),255,dtype=np.uint8)
@@ -205,7 +217,7 @@ def main(argv):
 		genImage(mat,width*10,"./video/"+str(num)+".png")
 		num+=1
 		print(len(binstring))
-	#imgToVideo("./video/in.avi",num)
+	imgToVideo("./video/in.avi",num)
 
 if __name__=="__main__":
 	main(sys.argv)

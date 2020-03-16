@@ -251,13 +251,18 @@ def getGraph(filename):
 
 if __name__ == "__main__":
 	#count = getGraph("./video/in.mp4")
-	count=188
-	i = 13
-	while i<count:
-		img=cv2.imread("./output/"+str(i)+".png")
-		img,contours,hierachy = getContours(img)
-		img=find(img,contours,np.squeeze(hierachy))
-		cv2.imwrite("output.png",img)
-		print(count-i)
-		decode(img)
-		i+=1
+	#count=8
+	#i = 7
+	#while i<count:
+	#	img=cv2.imread("./output/"+str(i)+".png")
+	#	img,contours,hierachy = getContours(img)
+	#	img=find(img,contours,np.squeeze(hierachy))
+	#	cv2.imwrite("output.png",img)
+	#	print(count-i)
+	#	decode(img)
+	#	i+=1
+	img=cv2.imread("./video/0.png")
+	img,contours,hierachy = getContours(img)
+	img=find(img,contours,np.squeeze(hierachy))
+	cv2.imwrite("output.png",img)
+	decode(img)
