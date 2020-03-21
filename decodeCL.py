@@ -253,14 +253,14 @@ def decode(image,binstring):
 def wirteResult(binstring):
 	writer = open("./output/output.bin",'ab+')
 	writerCheck = open("./output/valid.bin",'ab+')
-	count = 0
+	#count = 0
 	while len(binstring)>=11:
 		if CRC.checkCRC(binstring[:11])==True:
 			writerCheck.write(struct.pack('B', 255))
 		else:
 			writerCheck.write(struct.pack('B', 0))
-			count+=1
-			print("throw ",count)
+			#count+=1
+			#print("throw ",count)
 		t = (int(binstring[:8],2))
 		res = struct.pack('B', t)
 		writer.write(res)
@@ -313,13 +313,14 @@ def decodeFromVideo(filename):
 		#cv2.waitKey(1)
 	vc.release()
 	return
+def main(argv):
+	decodeFromVideo("./video/in.mp4")
 
 if __name__ == "__main__":
 	#count = getGraph("./video/in.mp4")
 	#count = getGraph("./video/in.MP4")
 	#i = checkStart(cv2.imread("./output/16.png"))
-
-	decodeFromVideo("./video/in.mp4")
+	main(sys.argv)
 	#first = 1
 	#binstring = ""
 	#img=cv2.imread("./output/17.png")
