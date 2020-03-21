@@ -3,9 +3,12 @@ import numpy as np
 import struct
 import os
 import sys
+import zlib
+import CRC
+from time import *
 border = 4
-width = 80
-inWidth = 40
+width = 81
+inWidth = 41
 locWidth = 16
 blackWhite = 14
 
@@ -151,16 +154,23 @@ def drawPoint():
 	return
 
 def genImage(mat,width,filename):
+	#begin_time = time()
 	img = np.zeros((width,width,3),dtype=np.uint8)
-	pwidth = width/len(mat)#pwidth一般取10
+	pwidth = 10
 	for i in range(width):
-		normali = i/pwidth
+		normali = i//pwidth
 		for j in range(width):
-			normalj = j/pwidth
+			normalj = j//pwidth
 			if(normali<len(mat) and normalj<len(mat)):
-				img[i][j][0]=int(mat[int(normali)][int(normalj)][0])
-				img[i][j][1]=int(mat[int(normali)][int(normalj)][1])
-				img[i][j][2]=int(mat[int(normali)][int(normalj)][2])
+				img[i][j][0]=(mat[normali][normalj][0])
+				img[i][j][1]=(mat[normali][normalj][1])
+				img[i][j][2]=(mat[normali][normalj][2])
+				#img[i][j][0]=int(mat[int(normali)][int(normalj)][0])
+				#img[i][j][1]=int(mat[int(normali)][int(normalj)][1])
+				#img[i][j][2]=int(mat[int(normali)][int(normalj)][2])
+	#end_time = time()
+	#run_time = end_time-begin_time
+	#print ('该循环程序运行时间：',run_time)
 	cv2.imwrite(filename,img)
 	return
 
@@ -193,11 +203,16 @@ def main(argv):
 	#		"But, in a larger sense, we can not dedicate -- we can not consecrate -- we can not hallow -- this ground. The brave men, living and dead, who struggled here, have consecrated it, far above our poor power to add or detract. The world will little note, nor long remember what we say here, but it can never forget what they did here. It is for us the living, rather, to be dedicated here to the unfinished work which they who fought here have thus far so nobly advanced. It is rather for us to be here dedicated to the great task remaining before us -- that from these honored dead we take increased devotion to that cause for which they gave the last full measure of devotion -- that we here highly resolve that these dead shall not have died in vain -- that this nation, under God, shall have a new birth of freedom -- and that government of the people, by the people, for the people, shall not perish from the earth."
 	#		"Abraham Lincoln"
 	#		"November 19, 1863")
-
+	
 	binstring=""
+	key = '1011'
+	#begin_time = time()
 	for ch in data:
 		#print(struct.unpack('B',ch))
-		binstring += '{:08b}'.format(ch)
+		binstring += CRC.generateCRC('{:08b}'.format(ch),key)
+	#end_time = time()
+	#run_time = end_time-begin_time
+	#print ('该循环程序运行时间：',run_time)
 	startOrEnd = 170
 	startOrEndStr = ""
 	for i in range(8):
@@ -213,8 +228,12 @@ def main(argv):
 		mat = np.full((width,width,3),255,dtype=np.uint8)
 		#mat = [[255 for i in range(width)]for j in range(width)]
 		drawLocPoint(mat)
+		#begin_time = time()
 		binstring=encode(mat,binstring)
 		genImage(mat,width*10,"./video/"+str(num)+".png")
+		#end_time = time()
+		#run_time = end_time-begin_time
+		#print ('该循环程序运行时间：',run_time)
 		num+=1
 		print(len(binstring))
 	imgToVideo("./video/in.avi",num)
